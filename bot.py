@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import os
@@ -8,14 +7,11 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Загрузка блоков из JSON
 with open("blocks.json", "r", encoding="utf-8") as f:
     raw_blocks = json.load(f)
 
-# Индексы для быстрого поиска
 blocks_by_id = {b["block_id"]: b for b in raw_blocks}
 
-# Группировка дочерних блоков по parent_block_id
 children_by_parent = {}
 for b in raw_blocks:
     pid = b.get("parent_block_id")
@@ -31,14 +27,11 @@ def get_start_block():
 
 
 def find_next_block(current_block: dict, user_text: str):
-    """Находит следующий блок на основе ответа пользователя."""
     block_id = current_block["block_id"]
 
-    # Если есть явный next_block_id — идём туда
     if current_block.get("next_block_id"):
         return blocks_by_id.get(current_block["next_block_id"])
 
-    # Если у блока есть дочерние — ищем совпадение по condition
     children = children_by_parent.get(block_id, [])
     if children:
         else_block = None
@@ -48,9 +41,8 @@ def find_next_block(current_block: dict, user_text: str):
                 else_block = child
             elif cond.lower() == user_text.lower():
                 return child
-        return else_block  # fallback
+        return else_block
 
-    # Ищем блок с condition == auto_transition без parent (следующий по порядку)
     ids = list(blocks_by_id.keys())
     try:
         idx = ids.index(block_id)
@@ -71,58 +63,43 @@ def build_keyboard(buttons: list):
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, one_time_keyboard=True)
 
 
-async def execute_commands(commands: list, context: ContextTypes.DEFAULT_TYPE, user_id: int):
-    """Выполняет команды блока (например, inc_variable)."""
+async def execute_commands(commands: list, context: ContextTypes.DEFAULT_TYPE):
     for cmd in commands or []:
         if cmd.startswith("inc_variable("):
             inner = cmd[len("inc_variable("):-1]
             parts = [p.strip() for p in inner.split(",")]
             if len(parts) == 2:
                 var_name, amount = parts[0], int(parts[1])
-                user_data = context.application.user_data.setdefault(user_id, {})
-                user_data[var_name] = user_data.get(var_name, 0) + amount
-                logger.info(f"User {user_id}: {var_name} = {user_data[var_name]}")
+                context.user_data[var_name] = context.user_data.get(var_name, 0) + amount
+                logger.info(f"{var_name} = {context.user_data[var_name]}")
 
 
 async def send_block(block: dict, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отправляет сообщение блока пользователю."""
-    user_id = update.effective_user.id
     text = block.get("message", "...")
     buttons = block.get("buttons", [])
 
-    # Подставляем переменные в текст (например, {score})
-    user_vars = context.application.user_data.get(user_id, {})
-    for key, val in user_vars.items():
-        text = text.replace(f"{{{key}}}", str(val))
+    for key, val in context.user_data.items():
+        if not key.startswith("_"):
+            text = text.replace(f"{{{key}}}", str(val))
 
     keyboard = build_keyboard(buttons)
     await update.effective_message.reply_text(text, reply_markup=keyboard)
-
-    # Если блок — auto_transition (без кнопок от пользователя), сразу показываем следующий
-    if block.get("condition") == "auto_transition" and buttons:
-        pass  # кнопки есть — ждём ответа
-
-    # Запоминаем текущий блок
-    context.application.user_data.setdefault(user_id, {})["_current_block"] = block["block_id"]
+    context.user_data["_current_block"] = block["block_id"]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    context.application.user_data[user_id] = {}  # сброс состояния
+    context.user_data.clear()
 
     block = get_start_block()
     if block:
         await send_block(block, update, context)
     else:
-        await update.message.reply_text("Стартовый блок не найден. Проверь blocks.json.")
+        await update.message.reply_text("Стартовый блок не найден.")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
     user_text = update.message.text.strip()
-
-    user_data = context.application.user_data.get(user_id, {})
-    current_block_id = user_data.get("_current_block")
+    current_block_id = context.user_data.get("_current_block")
 
     if current_block_id is None:
         await update.message.reply_text("Напиши /start чтобы начать квиз.")
@@ -133,20 +110,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Что-то пошло не так. Напиши /start.")
         return
 
-    # Выполняем команды текущего блока (если есть), потом ищем следующий
     next_block = find_next_block(current_block, user_text)
 
     if next_block is None:
-        score = user_data.get("score", 0)
+        score = context.user_data.get("score", 0)
         await update.message.reply_text(
             f"🏁 Квиз окончен! Твой результат: {score} очков.\n\nНапиши /start чтобы начать заново.",
             reply_markup=ReplyKeyboardRemove()
         )
         return
 
-    # Выполняем команды следующего блока
-    await execute_commands(next_block.get("commands", []), context, user_id)
-
+    await execute_commands(next_block.get("commands", []), context)
     await send_block(next_block, update, context)
 
 
@@ -156,8 +130,6 @@ def main():
         raise ValueError("Нет BOT_TOKEN! Задай переменную окружения BOT_TOKEN.")
 
     app = Application.builder().token(token).build()
-    app.user_data  # инициализация
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
