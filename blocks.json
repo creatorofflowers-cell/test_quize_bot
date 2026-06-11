@@ -1,0 +1,136 @@
+[
+  {
+    "block_id": 1001,
+    "title": "Start Block",
+    "description": "Приветствие и выбор категории",
+    "condition": "/start",
+    "message": "Привет! Добро пожаловать в мега-квиз. Выбери тему, в которой ты силен:\n1. 🎨 Искусство\n2. 🚀 Космос",
+    "buttons": ["🎨 Искусство", "🚀 Космос"]
+  },
+  {
+    "block_id": 2001,
+    "title": "Art_Q1",
+    "description": "Первый вопрос категории Искусство",
+    "condition": "🎨 Искусство",
+    "parent_block_id": 1001,
+    "message": "Отлично! Категория «Искусство».\n\nКто расписал потолок Сикстинской капеллы?\n\n1) Леонардо да Винчи\n2) Микеланджело\n3) Рафаэль",
+    "buttons": ["Леонардо да Винчи", "Микеланджело", "Рафаэль"]
+  },
+  {
+    "block_id": 2002,
+    "title": "Art_Q1_Correct",
+    "description": "Правильный ответ на Art_Q1",
+    "condition": "Микеланджело",
+    "parent_block_id": 2001,
+    "message": "🎉 Абсолютно верно! Это был Микеланджело Буонарроти. Лови +1 балл!",
+    "commands": ["inc_variable(score, 1)"],
+    "next_block_id": 2004
+  },
+  {
+    "block_id": 2003,
+    "title": "Art_Q1_Incorrect",
+    "description": "Неверный ответ на Art_Q1",
+    "condition": "else",
+    "parent_block_id": 2001,
+    "message": "❌ Не угадал. На самом деле это был Микеланджело. Ничего, едем дальше!",
+    "next_block_id": 2004
+  },
+  {
+    "block_id": 2004,
+    "title": "Art_Q2",
+    "description": "Второй вопрос категории Искусство",
+    "condition": "auto_transition",
+    "message": "Следующий вопрос!\n\nВ каком городе находится музей Лувр?",
+    "buttons": ["Париж", "Лондон", "Рим"]
+  },
+  {
+    "block_id": 2005,
+    "title": "Art_Q2_Correct",
+    "description": "Правильный ответ на Art_Q2",
+    "condition": "Париж",
+    "parent_block_id": 2004,
+    "message": "🎉 Правильно! Лувр находится в Париже. +1 балл!",
+    "commands": ["inc_variable(score, 1)"],
+    "next_block_id": 2007
+  },
+  {
+    "block_id": 2006,
+    "title": "Art_Q2_Incorrect",
+    "description": "Неверный ответ на Art_Q2",
+    "condition": "else",
+    "parent_block_id": 2004,
+    "message": "❌ Мимо! Лувр — в Париже.",
+    "next_block_id": 2007
+  },
+  {
+    "block_id": 2007,
+    "title": "Art_Result",
+    "description": "Итог категории Искусство",
+    "condition": "auto_transition",
+    "message": "🏁 Квиз по искусству окончен!\n\nТвой результат: {score} из 2 очков.\n\nНапиши /start чтобы начать заново.",
+    "buttons": []
+  },
+  {
+    "block_id": 3001,
+    "title": "Space_Q1",
+    "description": "Первый вопрос категории Космос",
+    "condition": "🚀 Космос",
+    "parent_block_id": 1001,
+    "message": "Поехали! Категория «Космос».\n\nКакая планета Солнечной системы самая большая?\n\n1) Сатурн\n2) Юпитер\n3) Нептун",
+    "buttons": ["Сатурн", "Юпитер", "Нептун"]
+  },
+  {
+    "block_id": 3002,
+    "title": "Space_Q1_Correct",
+    "description": "Правильный ответ на Space_Q1",
+    "condition": "Юпитер",
+    "parent_block_id": 3001,
+    "message": "🎉 Верно! Юпитер — самая большая планета. +1 балл!",
+    "commands": ["inc_variable(score, 1)"],
+    "next_block_id": 3004
+  },
+  {
+    "block_id": 3003,
+    "title": "Space_Q1_Incorrect",
+    "description": "Неверный ответ на Space_Q1",
+    "condition": "else",
+    "parent_block_id": 3001,
+    "message": "❌ Не угадал. Самая большая — Юпитер.",
+    "next_block_id": 3004
+  },
+  {
+    "block_id": 3004,
+    "title": "Space_Q2",
+    "description": "Второй вопрос категории Космос",
+    "condition": "auto_transition",
+    "message": "Следующий вопрос!\n\nВ каком году Гагарин полетел в космос?",
+    "buttons": ["1957", "1961", "1969"]
+  },
+  {
+    "block_id": 3005,
+    "title": "Space_Q2_Correct",
+    "description": "Правильный ответ на Space_Q2",
+    "condition": "1961",
+    "parent_block_id": 3004,
+    "message": "🎉 Правильно! 12 апреля 1961 года. +1 балл!",
+    "commands": ["inc_variable(score, 1)"],
+    "next_block_id": 3007
+  },
+  {
+    "block_id": 3006,
+    "title": "Space_Q2_Incorrect",
+    "description": "Неверный ответ на Space_Q2",
+    "condition": "else",
+    "parent_block_id": 3004,
+    "message": "❌ Мимо! Гагарин полетел в 1961 году.",
+    "next_block_id": 3007
+  },
+  {
+    "block_id": 3007,
+    "title": "Space_Result",
+    "description": "Итог категории Космос",
+    "condition": "auto_transition",
+    "message": "🏁 Квиз по космосу окончен!\n\nТвой результат: {score} из 2 очков.\n\nНапиши /start чтобы начать заново.",
+    "buttons": []
+  }
+]
